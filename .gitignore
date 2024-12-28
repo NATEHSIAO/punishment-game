@@ -39,3 +39,21 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE 設定
+.vscode/
+.idea/
+*.sublime-*
+
+# 系統檔案
+.DS_Store
+Thumbs.db
+
+# 依賴包
+node_modules/
+vendor/
+
+# 編譯檔案
+dist/
+build/
+*.log
