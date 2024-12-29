@@ -1,101 +1,180 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { gameContent, GameContent } from './data';
+
+const variableAnimation = {
+  animate: {
+    y: [0, -10, 0],
+    transition: {
+      duration: 0.3,
+      ease: "easeInOut",
+      repeat: 5,
+      repeatType: "mirror" as const
+    }
+  }
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [currentQuestion, setCurrentQuestion] = useState<string>('');
+  const [isSpinning, setIsSpinning] = useState(false);
+  const [isSpinningVariables, setIsSpinningVariables] = useState(false);
+  const [lastCategoryId, setLastCategoryId] = useState<string>('');
+  const [currentCategory, setCurrentCategory] = useState<string>('運動題');
+  const [displayedText, setDisplayedText] = useState<string>('點擊抽懲罰開始遊戲');
+  const [shouldAnimate, setShouldAnimate] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const getRandomItem = <T extends any>(array: T[]): T => {
+    return array[Math.floor(Math.random() * array.length)];
+  };
+
+  const processTemplate = (template: string) => {
+    const parts = template.split('，');
+    const firstLine = parts[0];
+    const secondLine = parts.slice(1).join('，');
+
+    const withPlaceholders = `${firstLine}\n${secondLine}`.replace(/\{([^}]+)\}/g, (match) => {
+      return `<motion-variable class="text-red-500 font-bold">???</motion-variable>`;
+    });
+    setDisplayedText(withPlaceholders);
+    setShouldAnimate(true);
+  };
+
+  const revealVariables = (template: string) => {
+    const parts = template.split('，');
+    const firstLine = parts[0];
+    const secondLine = parts.slice(1).join('，');
+    
+    let result = `${firstLine}\n${secondLine}`;
+    const variables = template.match(/\{([^}]+)\}/g) || [];
+    
+    variables.forEach(variable => {
+      const variableName = variable.slice(1, -1) as keyof GameContent['variables'];
+      const values = gameContent.variables[variableName];
+      if (values) {
+        const randomValue = getRandomItem(values);
+        result = result.replace(
+          variable,
+          `<motion-variable class="text-red-500 font-bold">${randomValue}</motion-variable>`
+        );
+      }
+    });
+
+    setDisplayedText(result);
+    setShouldAnimate(true);
+    
+    setTimeout(() => {
+      setShouldAnimate(false);
+    }, 3000);
+  };
+
+  const drawQuestion = async () => {
+    if (isSpinning) return;
+
+    setIsSpinning(true);
+    let selectedCategory;
+    do {
+      selectedCategory = getRandomItem(gameContent.categories);
+    } while (selectedCategory.id === lastCategoryId && gameContent.categories.length > 1);
+
+    const spinDuration = 1500;
+    const spinInterval = 100;
+    let spinCount = 0;
+    
+    const spinTimer = setInterval(() => {
+      const randomCategory = getRandomItem(gameContent.categories);
+      setCurrentCategory(randomCategory.name);
+      const randomTemplate = getRandomItem(randomCategory.templates);
+      processTemplate(randomTemplate);
+      spinCount++;
+      
+      if (spinCount * spinInterval >= spinDuration) {
+        clearInterval(spinTimer);
+        setCurrentCategory(selectedCategory.name);
+        const template = getRandomItem(selectedCategory.templates);
+        setCurrentQuestion(template);
+        processTemplate(template);
+        setLastCategoryId(selectedCategory.id);
+        setIsSpinning(false);
+        
+        setIsSpinningVariables(true);
+        setTimeout(() => {
+          revealVariables(template);
+          setIsSpinningVariables(false);
+        }, 1700);
+      }
+    }, spinInterval);
+  };
+
+  const renderTextWithAnimation = () => {
+    const lines = displayedText.split('\n');
+    const parts = lines.map(line => line.split(/<motion-variable|<\/motion-variable>/));
+    const variables = displayedText.match(/<motion-variable[^>]*>(.*?)<\/motion-variable>/g) || [];
+    let variableIndex = 0;
+    
+    return (
+      <div className="flex flex-col gap-2">
+        {parts.map((lineParts, lineIndex) => (
+          <div key={lineIndex}>
+            {lineParts.map((part, partIndex) => {
+              if (partIndex % 2 === 0) {
+                return <span key={partIndex} dangerouslySetInnerHTML={{ __html: part }} />;
+              } else {
+                const variableMatch = variables[variableIndex].match(/<motion-variable[^>]*>(.*?)<\/motion-variable>/);
+                const variableContent = variableMatch ? variableMatch[1] : '';
+                const classMatch = variables[variableIndex].match(/class="([^"]*)"/);
+                const className = classMatch ? classMatch[1] : '';
+                variableIndex++;
+                
+                return (
+                  <motion.span
+                    key={partIndex}
+                    className={className}
+                    animate={shouldAnimate ? "animate" : ""}
+                    variants={variableAnimation}
+                  >
+                    {variableContent}
+                  </motion.span>
+                );
+              }
+            })}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <main className="min-h-screen bg-white flex flex-col items-center">
+      <div className="w-full max-w-2xl px-4 flex flex-col items-center mt-16">
+        <h1 className="text-4xl md:text-5xl font-bold text-black mb-16">
+          派對遊戲懲罰生成器
+        </h1>
+
+        <div className="w-full mb-16">
+          <div className="text-2xl font-bold text-center text-black mb-4">
+            {currentCategory}
+          </div>
+          <div className="bg-[#FFE4C4] rounded-lg p-6 text-xl md:text-2xl text-center font-medium min-h-[120px] flex items-center justify-center whitespace-pre-wrap break-words leading-relaxed max-w-[600px] mx-auto">
+            {renderTextWithAnimation()}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={drawQuestion}
+          disabled={isSpinning || isSpinningVariables}
+          className={`w-48 h-48 rounded-full text-3xl font-bold text-white ${
+            isSpinning || isSpinningVariables
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-red-500 hover:bg-red-600 shadow-lg'
+          }`}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          {isSpinning || isSpinningVariables ? '抽取中...' : '抽懲罰'}
+        </motion.button>
+      </div>
+    </main>
   );
-}
+} 
