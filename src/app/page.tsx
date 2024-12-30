@@ -80,11 +80,7 @@ export default function Home() {
 
     setIsSpinning(true);
     let selectedCategory: Category | undefined;
-    do {
-      selectedCategory = getRandomItem(gameContent.categories);
-      if (!selectedCategory) return;
-    } while (selectedCategory.id === lastCategoryId && gameContent.categories.length > 1);
-
+    
     const spinDuration = 1500;
     const spinInterval = 100;
     let spinCount = 0;
@@ -100,6 +96,8 @@ export default function Home() {
       
       if (spinCount * spinInterval >= spinDuration) {
         clearInterval(spinTimer);
+        if (!selectedCategory) return;
+        
         setCurrentCategory(selectedCategory.name);
         const template = getRandomItem(selectedCategory.templates);
         if (!template) return;
@@ -110,6 +108,7 @@ export default function Home() {
         
         setIsSpinningVariables(true);
         setTimeout(() => {
+          if (!template) return;
           revealVariables(template);
           setIsSpinningVariables(false);
         }, 1700);
