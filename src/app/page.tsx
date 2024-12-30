@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { gameContent, GameContent } from './data';
 
@@ -36,11 +36,7 @@ export default function Home() {
   };
 
   const processTemplate = (template: string) => {
-    const parts = template.split('，');
-    const firstLine = parts[0];
-    const secondLine = parts.slice(1).join('，');
-
-    const withPlaceholders = `${firstLine}\n${secondLine}`.replace(/\{([^}]+)\}/g, (match) => {
+    const withPlaceholders = template.replace(/\{([^}]+)\}/g, (match) => {
       return `<motion-variable class="text-red-500 font-bold">???</motion-variable>`;
     });
     setDisplayedText(withPlaceholders);
@@ -48,11 +44,7 @@ export default function Home() {
   };
 
   const revealVariables = (template: string) => {
-    const parts = template.split('，');
-    const firstLine = parts[0];
-    const secondLine = parts.slice(1).join('，');
-    
-    let result = `${firstLine}\n${secondLine}`;
+    let result = template;
     const variables = template.match(/\{([^}]+)\}/g) || [];
     
     variables.forEach(variable => {
@@ -80,7 +72,11 @@ export default function Home() {
 
     setIsSpinning(true);
     let selectedCategory: Category | undefined;
-    
+    do {
+      selectedCategory = getRandomItem(gameContent.categories);
+      if (!selectedCategory) return;
+    } while (selectedCategory.id === lastCategoryId && gameContent.categories.length > 1);
+
     const spinDuration = 1500;
     const spinInterval = 100;
     let spinCount = 0;
@@ -96,8 +92,6 @@ export default function Home() {
       
       if (spinCount * spinInterval >= spinDuration) {
         clearInterval(spinTimer);
-        if (!selectedCategory) return;
-        
         setCurrentCategory(selectedCategory.name);
         const template = getRandomItem(selectedCategory.templates);
         if (!template) return;
@@ -108,7 +102,6 @@ export default function Home() {
         
         setIsSpinningVariables(true);
         setTimeout(() => {
-          if (!template) return;
           revealVariables(template);
           setIsSpinningVariables(false);
         }, 1700);
@@ -117,73 +110,78 @@ export default function Home() {
   };
 
   const renderTextWithAnimation = () => {
-    const lines = displayedText.split('\n');
-    const parts = lines.map(line => line.split(/<motion-variable|<\/motion-variable>/));
+    const parts = displayedText.split(/<motion-variable|<\/motion-variable>/);
     const variables = displayedText.match(/<motion-variable[^>]*>(.*?)<\/motion-variable>/g) || [];
     let variableIndex = 0;
     
     return (
-      <div className="flex flex-col gap-2">
-        {parts.map((lineParts, lineIndex) => (
-          <div key={lineIndex}>
-            {lineParts.map((part, partIndex) => {
-              if (partIndex % 2 === 0) {
-                return <span key={partIndex} dangerouslySetInnerHTML={{ __html: part }} />;
-              } else {
-                const variableMatch = variables[variableIndex].match(/<motion-variable[^>]*>(.*?)<\/motion-variable>/);
-                const variableContent = variableMatch ? variableMatch[1] : '';
-                const classMatch = variables[variableIndex].match(/class="([^"]*)"/);
-                const className = classMatch ? classMatch[1] : '';
-                variableIndex++;
-                
-                return (
-                  <motion.span
-                    key={partIndex}
-                    className={className}
-                    animate={shouldAnimate ? "animate" : ""}
-                    variants={variableAnimation}
-                  >
-                    {variableContent}
-                  </motion.span>
-                );
-              }
-            })}
-          </div>
-        ))}
+      <div className="text-center">
+        {parts.map((part, partIndex) => {
+          if (partIndex % 2 === 0) {
+            return <span key={partIndex}>{part}</span>;
+          } else {
+            const variableMatch = variables[variableIndex]?.match(/<motion-variable[^>]*>(.*?)<\/motion-variable>/);
+            const variableContent = variableMatch ? variableMatch[1] : '';
+            const classMatch = variables[variableIndex]?.match(/class="([^"]*)"/);
+            const className = classMatch ? classMatch[1] : '';
+            variableIndex++;
+            
+            return (
+              <motion.span
+                key={partIndex}
+                className={`${className} inline-block mx-1`}
+                animate={shouldAnimate ? "animate" : ""}
+                variants={variableAnimation}
+              >
+                {variableContent}
+              </motion.span>
+            );
+          }
+        })}
       </div>
     );
   };
 
   return (
-    <main className="min-h-screen bg-white flex flex-col items-center">
-      <div className="w-full max-w-2xl px-4 flex flex-col items-center mt-16">
-        <h1 className="text-4xl md:text-5xl font-bold text-black mb-16">
+    <div className="min-h-screen bg-gray-100">
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <h1 className="text-4xl font-bold text-gray-900 text-center mb-12">
           派對遊戲懲罰生成器
         </h1>
 
-        <div className="w-full mb-16">
-          <div className="text-2xl font-bold text-center text-black mb-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+          <div className="text-2xl font-bold text-gray-800 text-center mb-6">
             {currentCategory}
           </div>
-          <div className="bg-[#FFE4C4] rounded-lg p-6 text-xl md:text-2xl text-center font-medium min-h-[120px] flex items-center justify-center whitespace-pre-wrap break-words leading-relaxed max-w-[600px] mx-auto">
-            {renderTextWithAnimation()}
+          
+          <div className="bg-orange-50 rounded-lg p-6 mb-8 min-h-[120px] flex items-center justify-center">
+            <div className="text-xl text-gray-700">
+              {renderTextWithAnimation()}
+            </div>
+          </div>
+
+          <div className="flex justify-center">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={drawQuestion}
+              disabled={isSpinning || isSpinningVariables}
+              className={`
+                w-40 h-40 
+                rounded-full 
+                text-2xl font-bold text-white 
+                transition-colors duration-200
+                ${isSpinning || isSpinningVariables
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-red-500 hover:bg-red-600 active:bg-red-700 shadow-lg'
+                }
+              `}
+            >
+              {isSpinning || isSpinningVariables ? '抽取中...' : '抽懲罰'}
+            </motion.button>
           </div>
         </div>
-
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={drawQuestion}
-          disabled={isSpinning || isSpinningVariables}
-          className={`w-48 h-48 rounded-full text-3xl font-bold text-white ${
-            isSpinning || isSpinningVariables
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-red-500 hover:bg-red-600 shadow-lg'
-          }`}
-        >
-          {isSpinning || isSpinningVariables ? '抽取中...' : '抽懲罰'}
-        </motion.button>
       </div>
-    </main>
+    </div>
   );
 } 
