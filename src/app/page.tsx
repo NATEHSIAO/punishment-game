@@ -79,10 +79,12 @@ export default function Home() {
     if (isSpinning) return;
 
     setIsSpinning(true);
-    let selectedCategory: Category;
+    let selectedCategory: Category | undefined;
     do {
       selectedCategory = getRandomItem(gameContent.categories);
-    } while (selectedCategory.id === lastCategoryId && gameContent.categories.length > 1);
+    } while (selectedCategory?.id === lastCategoryId && gameContent.categories.length > 1);
+
+    if (!selectedCategory) return;
 
     const spinDuration = 1500;
     const spinInterval = 100;
