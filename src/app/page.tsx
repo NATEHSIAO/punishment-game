@@ -71,19 +71,15 @@ export default function Home() {
     if (isSpinning) return;
     setIsSpinning(true);
     
-    let selectedCategory: Category | null = null;
-    
-    const initialCategory = getRandomItem(gameContent.categories);
-    if (!initialCategory) {
-      setIsSpinning(false);
-      return;
-    }
-    
-    selectedCategory = initialCategory;
-
     const spinDuration = 1500;
     const spinInterval = 100;
     let spinCount = 0;
+    
+    const finalCategory = getRandomItem(gameContent.categories);
+    if (!finalCategory) {
+      setIsSpinning(false);
+      return;
+    }
     
     const spinTimer = setInterval(() => {
       const randomCategory = getRandomItem(gameContent.categories);
@@ -94,14 +90,14 @@ export default function Home() {
       processTemplate(randomTemplate);
       spinCount++;
       
-      if (spinCount * spinInterval >= spinDuration && selectedCategory) {
+      if (spinCount * spinInterval >= spinDuration) {
         clearInterval(spinTimer);
-        setCurrentCategory(selectedCategory.name);
-        const template = getRandomItem(selectedCategory.templates);
+        setCurrentCategory(finalCategory.name);
+        const template = getRandomItem(finalCategory.templates);
         if (!template) return;
         setCurrentQuestion(template);
         processTemplate(template);
-        setLastCategoryId(selectedCategory.id);
+        setLastCategoryId(finalCategory.id);
         setIsSpinning(false);
         
         setIsSpinningVariables(true);
