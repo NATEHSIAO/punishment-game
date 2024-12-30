@@ -69,16 +69,17 @@ export default function Home() {
 
   const drawQuestion = async () => {
     if (isSpinning) return;
-
     setIsSpinning(true);
+    
+    let selectedCategory: Category | null = null;
     
     const initialCategory = getRandomItem(gameContent.categories);
     if (!initialCategory) {
       setIsSpinning(false);
       return;
     }
-
-    const selectedCategory = initialCategory;
+    
+    selectedCategory = initialCategory;
 
     const spinDuration = 1500;
     const spinInterval = 100;
@@ -93,7 +94,7 @@ export default function Home() {
       processTemplate(randomTemplate);
       spinCount++;
       
-      if (spinCount * spinInterval >= spinDuration) {
+      if (spinCount * spinInterval >= spinDuration && selectedCategory) {
         clearInterval(spinTimer);
         setCurrentCategory(selectedCategory.name);
         const template = getRandomItem(selectedCategory.templates);
