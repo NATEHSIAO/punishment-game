@@ -71,11 +71,12 @@ export default function Home() {
     if (isSpinning) return;
 
     setIsSpinning(true);
-    let selectedCategory: Category | undefined;
-    do {
-      selectedCategory = getRandomItem(gameContent.categories);
-      if (!selectedCategory) return;
-    } while (selectedCategory.id === lastCategoryId && gameContent.categories.length > 1);
+    
+    const selectedCategory = getRandomItem(gameContent.categories);
+    if (!selectedCategory) {
+      setIsSpinning(false);
+      return;
+    }
 
     const spinDuration = 1500;
     const spinInterval = 100;
@@ -102,6 +103,7 @@ export default function Home() {
         
         setIsSpinningVariables(true);
         setTimeout(() => {
+          if (!template) return;
           revealVariables(template);
           setIsSpinningVariables(false);
         }, 1700);
