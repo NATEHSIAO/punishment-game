@@ -72,11 +72,13 @@ export default function Home() {
 
     setIsSpinning(true);
     
-    const selectedCategory = getRandomItem(gameContent.categories);
-    if (!selectedCategory) {
+    const initialCategory = getRandomItem(gameContent.categories);
+    if (!initialCategory) {
       setIsSpinning(false);
       return;
     }
+
+    const selectedCategory = initialCategory;
 
     const spinDuration = 1500;
     const spinInterval = 100;
