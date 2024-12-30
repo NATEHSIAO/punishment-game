@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { gameContent, GameContent } from './data';
 
+interface Category {
+  id: string;
+  name: string;
+  templates: string[];
+}
+
 const variableAnimation = {
   animate: {
     y: [0, -10, 0],
@@ -73,7 +79,7 @@ export default function Home() {
     if (isSpinning) return;
 
     setIsSpinning(true);
-    let selectedCategory;
+    let selectedCategory: Category;
     do {
       selectedCategory = getRandomItem(gameContent.categories);
     } while (selectedCategory.id === lastCategoryId && gameContent.categories.length > 1);
